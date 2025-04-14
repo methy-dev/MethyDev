@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Messages reçus</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #0077ff;
+    }
+
+    .counter {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    button {
+      background-color: #0077ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    button:hover {
+      background-color: #005fcc;
+      transform: translateY(-2px);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      min-height: 200px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      background-color: #0077ff;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 20px;
+      color: green;
+      font-weight: bold;
+    }
+
+    /* Icône quand il n'y a pas de message */
+    .empty-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: grey;
+    }
+
+    .empty-icon svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 10px;
+    }
+
+    /* Responsivité mobile */
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead tr {
+        display: none;
+      }
+
+      td {
+        position: relative;
+        padding-left: 50%;
+        text-align: left;
+      }
+
+      td::before {
+        position: absolute;
+        left: 10px;
+        width: 45%;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+
+      td:nth-of-type(1)::before { content: "Nom"; }
+      td:nth-of-type(2)::before { content: "Email"; }
+      td:nth-of-type(3)::before { content: "Message"; }
+      td:nth-of-type(4)::before { content: "Date"; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Messages reçus 📩</h1>
+  <div class="counter">Total : <span id="messageCount">0</span> messages</div>
+
+  <button onclick="exportCSV()">Exporter en CSV</button>
+  <button onclick="clearMessages()">Vider les messages</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Email</th>
+        <th>Message</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="messagesTable">
+      <tr><td colspan="4" style="text-align:center; padding:20px; color:grey;">Chargement des messages...</td></tr>
+    </tbody>
+  </table>
+
+  <div class="message" id="adminMessage"></div>
+
+  <script>
+    async function loadMessages() {
+      try {
+        const response = await fetch('/messages.json');
+        const messages = await response.json();
+
+        const tableBody = document.getElementById('messagesTable');
+        const messageCount = document.getElementById('messageCount');
+        tableBody.innerHTML = '';
+
+        if (messages.length === 0) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="4">
+                <div class="empty-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="gray" viewBox="0 0 24 24"><path d="M2 3h20v18H2V3zm2 2v14h16V5H4zm3 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/></svg>
+                  <p>Aucun message reçu.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+        } else {
+          tableBody.innerHTML = messages.map(msg => `
+            <tr>
+              <td>${msg.name}</td>
+              <td>${msg.email}</td>
+              <td>${msg.message}</td>
+              <td>${new Date(msg.date).toLocaleString()}</td>
+            </tr>
+          `).join('');
+        }
+
+        messageCount.textContent = messages.length;
+      } catch (error) {
+        alert('Erreur lors du chargement des messages.');
+        console.error(error);
+      }
+    }
+
+    function exportCSV() {
+      fetch('/messages.json')
+        .then(response => response.json())
+        .then(messages => {
+          if (messages.length === 0) {
+            alert('Aucun message à exporter.');
+            return;
+          }
+
+          let csv = 'Nom,Email,Message,Date\\n';
+          messages.forEach(msg => {
+            csv += `"${msg.name}","${msg.email}","${msg.message}","${new Date(msg.date).toLocaleString()}"\\n`;
+          });
+
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'messages.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        });
+    }
+
+    async function clearMessages() {
+      const confirmation = confirm('Es-tu sûr de vouloir supprimer tous les messages ?');
+      if (!confirmation) return;
+
+      try {
+        const response = await fetch('/clear-messages', { method: 'POST' });
+        const result = await response.json();
+        document.getElementById('adminMessage').textContent = result.message;
+        loadMessages();
+      } catch (error) {
+        alert('Erreur lors de la suppression des messages.');
+        console.error(error);
+      }
+    }
+
+    // Chargement initial
+    loadMessages();
+  </script>
+</body>
+</html>
