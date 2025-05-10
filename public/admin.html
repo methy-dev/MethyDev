@@ -139,26 +139,32 @@
     </tbody>
   </table>
 
-  <script>
-    fetch('https://formspree.io/forms/mldjzqoz/submissions',{
-      header:{
-        'Authorization': 'Bearer TON_TOKEN_FORMSPREE'
-      }
-    })
-    .then(response => response.json())
-    .then(data =>{
-      const tbody = document.getElementById('messages');
-      data.submissions.forEach(sub =>{
-        const row = document.createElemnt('tr'); 
-        row.innerHTML = `
-          <td>${sub.data.name}</td>
-          <td>${sub.data.email}</td>
-          <td>${sub.data.message}</td>
-          <td>${new Date(sub.createdAt).toLocaleString()}</td>  
-        `;
-        tbody.apprendChild(row);
-      });
+ <script>
+  fetch('https://formspree.io/forms/mldjzqoz/submissions', {
+    headers: {
+      'Authorization': 'Bearer TON_TOKEN_FORMSPREE'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    const tbody = document.getElementById('messages');
+    const count = data.submissions.length;
+    document.getElementById('messageCount').textContent = count;
+    
+    data.submissions.forEach(sub => {
+      const row = document.createElement('tr'); 
+      row.innerHTML = `
+        <td>${sub.data.name || ''}</td>
+        <td>${sub.data.email || ''}</td>
+        <td>${sub.data.message || ''}</td>
+        <td>${new Date(sub.createdAt).toLocaleString()}</td>  
+      `;
+      tbody.appendChild(row);
     });
-  </script>
+  })
+  .catch(error => {
+    console.error('Erreur lors de la récupération des messages :', error);
+  });
+</script>
 </body>
 </html>
