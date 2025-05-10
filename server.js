@@ -69,7 +69,7 @@ app.get('/visitors', (req, res) => {
 
 // ✅ Protection admin par Basic Auth
 const basicAuth = (req, res, next) => {
-  const auth = { login: 'admin', password: 'SecurePass2024' }; // 🔑 Personnalise ici !
+  const auth = { login: 'admin', password: '01234' }; // 🔑 Personnalise ici !
 
   const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
   const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
